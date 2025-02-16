@@ -10,6 +10,7 @@ let directionMoving = { left: false, right: false, up: false, down: false }
 let lastDirection_vert = null;
 let lastDirection_horz = null
 let firstSnakeSegmentPos = null;
+let snakeHeadPositions = [];
 
 let fontSyle = { fontSize: 20 }
 
@@ -60,6 +61,7 @@ app.ticker.add((delta) =>
 function gameLoop()
 {
     moveSnake();
+    //moveSnake2();
     checkBounds()
     checkIfAtFood();
     txtSnake.text = `${snakeSegments[0].x} - ${snakeSegments[0].y}`;
@@ -81,10 +83,14 @@ function moveSnake()
             }
 
             let parentSnakePos = getParentSnakePosition(index);
+            segment.snakeLabel.text = `${segment.x} - ${segment.y}`
+            segment.snakeLabel.x = segment.x;
+            segment.snakeLabel.y = segment.y;
 
             if (parentSnakePos == null)
             {
                 segment.x -= 1;
+                console.log('a')
                 continue;
             }
 
@@ -92,12 +98,15 @@ function moveSnake()
             {
                 if (index > 0 && segment.y >= parentSnakePos.y)
                 {
+                    console.log('b')
                     segment.y -= 1
                 }
                 else if (index > 0 && segment.y <= parentSnakePos.y)
                 {
+                    console.log('c')
                     segment.x -= 1
                     removeParentSnakePosition(index);
+                   
                 }
             }
             else if (lastDirection_vert == "down")
@@ -129,8 +138,11 @@ function moveSnake()
                 continue;
             }
 
-
             let parentSnakePos = getParentSnakePosition(index);
+                        segment.snakeLabel.text = `${segment.x} - ${segment.y}`
+            segment.snakeLabel.x = segment.x;
+            segment.snakeLabel.y = segment.y;
+
 
             if (parentSnakePos == null)
             {
@@ -173,13 +185,16 @@ function moveSnake()
         for (const [index, segment] of snakeSegments.entries())
         {
 
-            if (index == 0 )
+            if (index == 0)
             {
                 segment.y -= 1
                 continue;
             }
 
             let parentSnakePos = getParentSnakePosition(index);
+                        segment.snakeLabel.text = `${segment.x} - ${segment.y}`
+            segment.snakeLabel.x = segment.x;
+            segment.snakeLabel.y = segment.y;
 
             if (parentSnakePos == null)
             {
@@ -234,6 +249,9 @@ function moveSnake()
             }
 
             let parentSnakePos = getParentSnakePosition(index);
+                        segment.snakeLabel.text = `${segment.x} - ${segment.y}`
+            segment.snakeLabel.x = segment.x;
+            segment.snakeLabel.y = segment.y;
 
             if (parentSnakePos == null)
             {
@@ -275,6 +293,67 @@ function moveSnake()
         }
     }
 
+
+}
+
+function moveSnake2()
+{
+    let snakeHeadPos = { x: snakeSegments[0].x, y: snakeSegments[0].y };
+    snakeHeadPositions.push(snakeHeadPos);
+
+    for (const [index, segment] of snakeSegments.entries())
+    {
+
+
+        if (index == 0)
+        {
+            if (directionMoving.left)
+            {
+                segment.x -= 1
+            }
+            else if (directionMoving.right)
+            {
+                segment.x += 1
+            }
+            else if (directionMoving.up)
+            {
+                segment.y -= 1
+            }
+            else if (directionMoving.down)
+            {
+                segment.y += 1
+            }
+        }
+        else
+        {
+            if (directionMoving.left)
+            {
+                segment.x = snakeHeadPositions[0].x - (snakeSegmentWidth * index)
+                segment.y = snakeHeadPositions[0].y 
+            }
+            else if (directionMoving.right)
+            {
+                segment.x = snakeHeadPositions[0].x + (snakeSegmentWidth * index)
+                segment.y = snakeHeadPositions[0].y 
+            }
+            else if (directionMoving.up)
+            {
+                segment.x = snakeHeadPositions[0].x;
+                segment.y = snakeHeadPositions[0].y + (snakeSegmentHeight * index)
+            }
+            else if (directionMoving.down)
+            {
+                segment.x = snakeHeadPositions[0].x;
+                segment.y = snakeHeadPositions[0].y - (snakeSegmentHeight * index)
+            }
+
+
+
+            segment.moves.shift();
+        }
+    }
+
+    snakeHeadPositions.shift();
 
 }
 
@@ -364,8 +443,18 @@ function growSnake()
     bTemp.y = snakeY;
     bTemp.endFill();
     bTemp.turnPositions = [];
+    bTemp.moves = [];
+
+    const txtSnakeLabel = new PIXI.Text(`${bTemp.x} - ${bTemp.y}`, { fontSize:12, wordWrap:true, wordWrapWidth: 25 });
+
+    txtSnakeLabel.x = bTemp.x;
+    txtSnakeLabel.y = bTemp.y;
+   
+    bTemp.snakeLabel = txtSnakeLabel;
+
     snakeSegments.push(bTemp);
     app.stage.addChild(bTemp);
+     app.stage.addChild(txtSnakeLabel);
 }
 
 
@@ -520,7 +609,7 @@ function canTurn()
 
     parentPos.x2 = parentPos.x + snakeSegmentWidth;
     parentPos.y2 = parentPos.y + snakeSegmentHeight;
-  
+
 
     if (directionMoving.up)
     {
@@ -681,6 +770,6 @@ function showDebugInfo()
 {
     let turnPositions = snakeSegments.map(function (s) { return s.turnPositions })
     console.log(turnPositions)
-
+    console.log(snakeHeadPositions);
     canTurn();
 }
