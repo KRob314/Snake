@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Snake.styles.css" asp-append-version="true" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js" integrity="sha512-PaaQR/Kf0+ItZTMVjdgJRUcrktec2B3m6XM+TiflUXy5hAF7eVys9dETQO4UX3/A/0H6KJf+e3D2VMVMlywAdA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://www.pixiparticles.com/js/particle-emitter.js" type="text/javascript"></script>
 </head>
 <body>
 
@@ -19,7 +20,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            <input type="button" onclick="showDebugInfo()" value="Debug Info" />
+            <input type="button" onclick="showDebugInfo()" value="Debug Info" /> &nbsp; <input type="button" onclick="clearMoves()" value="Clear Debug" />
             &copy; 2025 - Snake - <a asp-area="" asp-page="/Privacy">Privacy</a>
         </div>
     </footer>
