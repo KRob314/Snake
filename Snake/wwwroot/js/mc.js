@@ -52,8 +52,8 @@ jet.width = 300
 app.stage.addChild(jet)
 
 
-let backgroundPos = backgrounds.map(function (m) { return { x: m.x, y: m.y } })
-console.log(backgroundPos);
+
+
 
 app.ticker.add((delta) =>
 {
@@ -115,15 +115,16 @@ function dropMissile()
     var projectile = new PIXI.Graphics();
 
     projectile.beginFill('#000');
-    projectile.drawRect(0, 0, 50, 25)
+    projectile.drawRoundedRect(0, 0, 50, 15)
+    projectile.drawRect(0, -5, 15, 25)
     projectile.x = jet.x + 80
     projectile.y = jet.y + 85
     projectile.endFill();
     projectile.xSpeed = 3;
     projectile.ySpeed = 2;
-    projectile.rotationSpeed = 0;
+    projectile.rotationSpeed = .001;
 
-    projectiles.push(projectile);
+   projectiles.push(projectile);
     app.stage.addChild(projectile);
 }
 
@@ -132,8 +133,9 @@ function dropBomb()
     var projectile = new PIXI.Graphics();
 
     projectile.beginFill('#000');
-    projectile.drawRect(0, 0, 25, 100)
-    projectile.x = jet.x + 80
+    projectile.drawRoundedRect(0, 0, 20, 75, 50)
+    projectile.drawRect(-10, 0, 40, 15)
+    projectile.x = jet.x + 85
     projectile.y = jet.y + 85
     projectile.endFill();
     projectile.xSpeed = .5;
