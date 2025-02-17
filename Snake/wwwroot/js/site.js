@@ -6,14 +6,18 @@ let foodHeight = 37;
 let foodWidth = 26;
 let appHeight = window.innerHeight - 25;
 let appWidth = window.innerWidth - 25
-let snakeSegmentHeight = 50;
-let snakeSegmentWidth = 50;
+let snakeSegmentHeight = 25;
+let snakeSegmentWidth = 25;
 let directionMoving = { left: false, right: false, up: false, down: false }
 let lastDirection_vert = null;
 let lastDirection_horz = null
+let lastDirection = null;
 let firstSnakeSegmentPos = null;
 let snakeHeadPositions = [];
-let speed = 4;
+let speed = 6;
+
+
+
 
 let fontSyle = { fontSize: 16 }
 
@@ -29,9 +33,9 @@ document.body.appendChild(app.view);
 
 var bTemp = new PIXI.Graphics();
 bTemp.beginFill(0x66CCFF);
-bTemp.drawRect(0, 0, 50, 50);
+bTemp.drawRect(0, 0, snakeSegmentWidth, snakeSegmentHeight)
 bTemp.x = appWidth - (snakeSegmentWidth * 2)
-bTemp.y = appHeight - (snakeSegmentHeight * 2)
+bTemp.y = appHeight - (snakeSegmentHeight * 6)
 bTemp.endFill();
 bTemp.turnPositions = [];
 bTemp.moves = []
@@ -53,6 +57,11 @@ txtScore.x = 0;
 txtScore.y = 0;
 app.stage.addChild(txtScore);
 
+//growSnake()
+//growSnake()
+//growSnake()
+//growSnake()
+//growSnake()
 
 
 app.ticker.add((delta) =>
@@ -68,18 +77,18 @@ function gameLoop()
 {
     moveSnake();
     //logSnakeMoves();
-    //moveSnake2();
     checkIfAtFood();
     checkBounds()
 
     txtSnake.text = `${snakeSegments[0].x} - ${snakeSegments[0].y}`;
+
+
 
 }
 
 
 function moveSnake()
 {
-
 
     if (directionMoving.left)
     {
@@ -99,6 +108,11 @@ function moveSnake()
             if (parentSnakePos == null)
             {
                 moveLeft(segment);
+                continue;
+            }
+
+            if (!hasMadeItToParentMarker(segment, parentSnakePos))
+            {
                 continue;
             }
 
@@ -209,6 +223,11 @@ function moveSnake()
                 continue;
             }
 
+            if (!hasMadeItToParentMarker(segment, parentSnakePos))
+            {
+                continue;
+            }
+
             if (lastDirection_horz == "left")
             {
 
@@ -262,6 +281,11 @@ function moveSnake()
             if (parentSnakePos == null)
             {
                 moveDown(segment)
+                continue;
+            }
+
+            if (!hasMadeItToParentMarker(segment, parentSnakePos))
+            {
                 continue;
             }
 
@@ -319,72 +343,62 @@ function moveSnake()
     {
         segment.y += 1 * speed
     }
+
+    function hasMadeItToParentMarker(segment, parentSnakePos)
+    {
+        if (parentSnakePos.direction == 'left')
+        {
+            if (segment.x >= parentSnakePos.x)
+            {
+                moveLeft(segment);
+                return false;
+            }
+            return true;
+        }
+
+        if (parentSnakePos.direction == 'right')
+        {
+            if (segment.x <= parentSnakePos.x)
+            {
+                moveRight(segment);
+                return false;
+            }
+            return true;
+        }
+
+        if (parentSnakePos.direction == 'down')
+        {
+            if (segment.y <= parentSnakePos.y)
+            {
+                moveDown(segment)
+                return false;
+            }
+            return true;
+        }
+
+        if (parentSnakePos.direction == 'up')
+        {
+            if (segment.y >= parentSnakePos.y)
+            {
+                moveUp(segment)
+                return false;
+            }
+            return true;
+        }
+
+        return true;
+    }
 }
+
+
 
 function areNear(num1, num2)
 {
     return Math.abs(num1 - num2) < 4
 }
-function moveSnake2()
-{
-    let snakeHeadPos = { x: snakeSegments[0].x, y: snakeSegments[0].y };
-    snakeHeadPositions.push(snakeHeadPos);
-
-    for (const [index, segment] of snakeSegments.entries())
-    {
-
-
-        if (index == 0)
-        {
-            if (directionMoving.left)
-            {
-                segment.x -= 1
-            }
-            else if (directionMoving.right)
-            {
-                segment.x += 1
-            }
-            else if (directionMoving.up)
-            {
-                segment.y -= 1
-            }
-            else if (directionMoving.down)
-            {
-                segment.y += 1
-            }
-        }
-        else
-        {
-            if (directionMoving.left)
-            {
-                segment.x = snakeHeadPositions[0].x - (snakeSegmentWidth * index)
-                segment.y = snakeHeadPositions[0].y
-            }
-            else if (directionMoving.right)
-            {
-                segment.x = snakeHeadPositions[0].x + (snakeSegmentWidth * index)
-                segment.y = snakeHeadPositions[0].y
-            }
-            else if (directionMoving.up)
-            {
-                segment.x = snakeHeadPositions[0].x;
-                segment.y = snakeHeadPositions[0].y + (snakeSegmentHeight * index)
-            }
-            else if (directionMoving.down)
-            {
-                segment.x = snakeHeadPositions[0].x;
-                segment.y = snakeHeadPositions[0].y - (snakeSegmentHeight * index)
-            }
 
 
 
-            segment.moves.shift();
-        }
-    }
-
-    snakeHeadPositions.shift();
-
-}
 
 function checkBounds()
 {
@@ -440,8 +454,8 @@ function checkIfAtFood()
             growSnake();
             showParticles(snake.x, snake.y);
 
-            console.log('food')
-            console.log(food);
+            //console.log('food')
+            //console.log(food);
 
             //bunniesToRemove.push(bunny);
         }
@@ -511,11 +525,15 @@ function growSnake()
     {
         snakeX -= snakeSegmentWidth
     }
+    else
+    {
+        snakeY += snakeSegmentHeight
+    }
 
     var bTemp = new PIXI.Graphics();
 
     bTemp.beginFill(0x66CCFF);
-    bTemp.drawRect(0, 0, 50, 50);
+    bTemp.drawRect(0, 0, snakeSegmentWidth, snakeSegmentHeight)
     bTemp.x = snakeX;
     bTemp.y = snakeY;
     bTemp.endFill();
@@ -812,21 +830,23 @@ const down = keyboard("ArrowDown");
 
 right.press = () =>
 {
-    //if(notMovingOtherDirection())
+
     directionMoving.right = true;
 
     //if (lastDirection_horz == "right")
     //    clearParentPositions();
+
 };
 
 left.press = () =>
 {
-
     //if(notMovingOtherDirection())
     directionMoving.left = true;
 
     //if (lastDirection_horz == "left")
     //    clearParentPositions();
+
+
 }
 
 up.press = () =>
@@ -836,6 +856,8 @@ up.press = () =>
 
     //if (lastDirection_vert == "up")
     //    clearParentPositions();
+
+
 };
 
 down.press = () =>
@@ -845,12 +867,15 @@ down.press = () =>
 
     //if (lastDirection_vert == "down")
     //    clearParentPositions();
+
+
 }
 
 right.release = () =>
 {
     directionMoving.right = false;
     lastDirection_horz = 'right'
+    lastDirection = 'right'
     setParentSnakePositions('right')
 
 
@@ -858,6 +883,7 @@ right.release = () =>
 left.release = () =>
 {
     lastDirection_horz = 'left'
+    lastDirection = 'left'
     directionMoving.left = false;
     setParentSnakePositions('left')
 
@@ -870,6 +896,7 @@ up.release = () =>
 {
     directionMoving.up = false;
     lastDirection_vert = 'up'
+    lastDirection = 'up'
     setParentSnakePositions('up')
 
 
@@ -879,6 +906,7 @@ down.release = () =>
 {
     directionMoving.down = false;
     lastDirection_vert = 'down'
+    lastDirection = 'down'
     setParentSnakePositions('down')
 
 
