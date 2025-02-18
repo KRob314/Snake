@@ -81,8 +81,9 @@ function gameLoop()
 {
 
     drawProjectiles();
-    drawEnemies();
     checkProjectileHit();
+    drawEnemies();
+
     //drawBackground()
 
 }
@@ -99,6 +100,27 @@ function drawEnemies()
             enemy.label.x = enemy.x;
             enemy.label.y = enemy.y;
         }
+
+        enemy.healthbar.x = enemy.x;
+
+
+        if (enemy.health < 100 && enemy.healthbar.children[3].visible)
+        {
+            enemy.healthbar.children[3].visible = false;
+        }
+        else if (enemy.health < 75 && enemy.healthbar.children[2].visible)
+        {
+            enemy.healthbar.children[2].visible = false;
+        }
+        else if (enemy.health < 50 && enemy.healthbar.children[1].visible)
+        {
+            enemy.healthbar.children[1].visible = false;
+        }
+        //else if (enemy.health < 50 )
+        //{
+
+        //}
+
     }
 }
 
@@ -147,18 +169,20 @@ function checkProjectileHit()
             {
                 projectile.visible = false;
                 showParticlesSM(projectile.x, projectile.y);
-                enemy.hitPoints -= projectile.damage;
+                enemy.health -= projectile.damage;
 
-                setTimeout(function () {  projectile.destroy();},500)
+                setTimeout(function () { projectile.destroy(); }, 500)
 
-                if (enemy.hitPoints < 1)
+                if (enemy.health < 1)
                 {
                     enemy.visible = false;
+                    enemy.healthbar.destroy();
                     showParticlesLG(enemy.x, enemy.y);
+                    addEnemyJet();
 
                     setTimeout(function ()
                     {
-                        enemy.destroy();     
+                        enemy.destroy();
                         cleanUp();
                     }, 500)
                 }
@@ -167,9 +191,6 @@ function checkProjectileHit()
             }
         }
     }
-
-    console.log(projectiles)
-    console.log(enemies)
 
 }
 
@@ -331,11 +352,14 @@ function addEnemyJet()
     jet.y2 = () => jet.y + jet.height;
     jet.enemyType = enemyType.AIR
     jet.hitPoints = 50;
+    jet.health = 100
     jet.enemyId = getEnemyId();
-    jet.dealDamage = (dmg) => hitPoints = hitPoints - dmg;
+    jet.dealDamage = (dmg) => health = health - dmg;
     jet.isDead = () => hitPoints > 0;
     enemies.push(jet);
     app.stage.addChild(jet)
+
+    addHealthbarToEnemy(jet, enemyType.AIR)
 
     if (debugMode)
     {
@@ -347,6 +371,8 @@ function addEnemyJet()
         //app.stage.addChild(txtProjectileLabel);
     }
 }
+
+
 
 function addEnemyTank()
 {
@@ -371,9 +397,13 @@ function addEnemyTank()
     tank.y2 = () => tank.y + tank.height;
     tank.enemyType = enemyType.GROUND
     tank.hitPoints = 50;
+    tank.health = 100
     tank.enemyId = getEnemyId();
-    tank.dealDamage = (dmg) => hitPoints = hitPoints - dmg;
+    tank.dealDamage = (dmg) => health = health - dmg;
     tank.isDead = () => hitPoints > 0;
+
+    addHealthbarToEnemy(tank, enemyType.GROUND);
+
 
     if (debugMode)
     {
@@ -388,6 +418,65 @@ function addEnemyTank()
 
     app.stage.addChild(tank)
     enemies.push(tank);
+}
+
+function addHealthbarToEnemy(enemy, typeOfEnemy)
+{
+    const healthbarContainer = new PIXI.Container();
+
+    if (typeOfEnemy == enemyType.GROUND)
+    {
+        healthbarContainer.x = enemy.x + enemy.width
+        healthbarContainer.y = enemy.y + (enemy.height * .80)
+    }
+    else
+    {
+        healthbarContainer.x = enemy.x 
+        healthbarContainer.y = enemy.y 
+    }
+
+    var healthbar_green = new PIXI.Graphics();
+    healthbar_green.beginFill('#006b3c');
+    healthbar_green.drawRect(0, 0, enemy.width * .6, 8)
+    healthbar_green.x = 50
+    healthbar_green.y = 0
+    healthbar_green.endFill();
+    healthbar_green.visible = true;
+
+    var healthbar_yellow = new PIXI.Graphics();
+    healthbar_yellow.beginFill('#e4d00a');
+    healthbar_yellow.drawRect(0, 0, healthbar_green.width * .75, 8)
+    healthbar_yellow.x = healthbar_green.x
+    healthbar_yellow.y = healthbar_green.y
+    healthbar_yellow.endFill();
+    healthbar_yellow.visible = true;
+
+    var healthbar_orange = new PIXI.Graphics();
+    healthbar_orange.beginFill('#ed872d');
+    healthbar_orange.drawRect(0, 0, healthbar_yellow.width * .75, 8)
+    healthbar_orange.x = healthbar_green.x
+    healthbar_orange.y = healthbar_green.y
+    healthbar_orange.endFill();
+    healthbar_orange.visible = true;
+
+    var healthbar_red = new PIXI.Graphics();
+    healthbar_red.beginFill('#e03c31');
+    healthbar_red.drawRect(0, 0, healthbar_orange.width * .75, 8)
+    healthbar_red.x = healthbar_green.x
+    healthbar_red.y = healthbar_green.y
+    healthbar_red.endFill();
+    healthbar_red.visible = true;
+
+
+    healthbarContainer.addChild(healthbar_red)
+    healthbarContainer.addChild(healthbar_orange)
+    healthbarContainer.addChild(healthbar_yellow)
+    healthbarContainer.addChild(healthbar_green)
+
+    enemy.healthbar = healthbarContainer;
+
+    app.stage.addChild(healthbarContainer);
+
 }
 
 function doesIntersect(projectile, enemy)
@@ -551,9 +640,9 @@ function addEnemy()
 
     if (currentEnemyCount < 2)
     {
-        let enemyToSpawn = getRandomInt(1, 5);
+        //let enemyToSpawn = getRandomInt(1, 5);
 
-
+        addEnemyJet();
     }
 
 
