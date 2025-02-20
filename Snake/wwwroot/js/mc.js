@@ -13,13 +13,23 @@ let enemies = [];
 let debugMode = true;
 let roadY = appHeight - 150;
 let projectileConfigs = {
-    bullet: { width: 30, height: 15, xSpeed: 6, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 115, fireOffsetY: 45, damage: 10 },
-    missile: { width: 50, height: 15, xSpeed: 6, ySpeed: 3, rotationSpeed: .003, fireOffsetX: 80, fireOffsetY: 45, damage: 15 }
+    bullet: { width: 20, height: 10, xSpeed: 6, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 115, fireOffsetY: 45, damage: 10 },
+    missile: { width: 50, height: 15, xSpeed: 6, ySpeed: 3, rotationSpeed: .003, fireOffsetX: 80, fireOffsetY: 45, damage: 25 },
+    bomb: { width: 10, height: 15, xSpeed: 0, ySpeed: 6, rotationSpeed: .003, fireOffsetX: 80, fireOffsetY: 45, damage: 30 },
+    glideBomb: { width: 50, height: 50, xSpeed: 3.5, ySpeed: 3.5, rotationSpeed: -.003, fireOffsetX: 80, fireOffsetY: 45, damage: 40 }
 }
+let projectileXRotationModifier = 0;
+let projectileYRotationModifier = 0
+let projectileFireOffsetXModifier = 0
+let projectileFireOffsetYModifier = 0
+
 let enemyType = { AIR: 'air', GROUND: 'ground' }
 let enemyConfigs = { SPEED: 1 }
+let playerPitch = 0;
 
 let fontStyle = { fontSize: 24, wordWrap: false };
+let windSpeed = 0;
+let gameSpeed = 2;
 
 const app = new PIXI.Application({
     background: '#1099bb',
@@ -50,14 +60,29 @@ background2.width = appWidth + 10;
 app.stage.addChild(background2)
 //backgrounds.push(background2);
 
-let jet = PIXI.Sprite.from('/images/mc/jet-sm.png');
+let player = PIXI.Sprite.from('/images/mc/jet-sm.png');
 //jet.anchor.set(0.5);
-jet.x = 50
-jet.height = 75
-jet.width = 150
-jet.y = 50
+player.x = 50
+player.height = 75
+player.width = 150
+player.y = 50
+player.health = 100;
+addHealthbar(player, enemyType.AIR);
+player.healthbar.y = 55;
+player.healthbar.x = 40;
 
-app.stage.addChild(jet)
+if (debugMode)
+{
+    const txtPlayerLabel = new PIXI.Text(`${player.x} - ${player.y}`, { fontSize: 16, fill: '#FFF' });
+
+    txtPlayerLabel.x = player.x;
+    txtPlayerLabel.y = player.y;
+    txtPlayerLabel.text = `${player.x} - ${player.y}`;
+    player.label = txtPlayerLabel
+    app.stage.addChild(txtPlayerLabel);
+}
+
+app.stage.addChild(player)
 
 if (debugMode)
 {
@@ -79,12 +104,60 @@ startGame();
 
 function gameLoop()
 {
-
+    drawPlayer();
     drawProjectiles();
     checkProjectileHit();
     drawEnemies();
 
-    //drawBackground()
+    drawBackground()
+
+}
+
+function drawPlayer()
+{
+    player.rotation += playerPitch;
+
+    if (player.rotation <= 0)
+    {
+        playerPitch = 0;
+        player.rotation = 0
+    }
+
+    if (player.rotation > .5)
+    {
+        playerPitch = 0
+    }
+
+    if (debugMode)
+    {
+        if (player.rotation > 0)
+        {
+            if (player.rotation > 0 && player.rotation < .1)
+            {
+                player.label.text = `${player.x} - ${player.y}, < .1`
+            }
+            else if (player.rotation >= .1 && player.rotation < .2)
+            {
+                player.label.text = `${player.x} - ${player.y}, .1`
+            }
+            else if (player.rotation >= .2 && player.rotation < .3)
+            {
+                player.label.text = `${player.x} - ${player.y}, .2`
+            }
+            else if (player.rotation >= .3 && player.rotation < .4)
+            {
+                player.label.text = `${player.x} - ${player.y}, .3`
+            }
+            else if (player.rotation >= .4 && player.rotation < .5)
+            {
+                player.label.text = `${player.x} - ${player.y}, .4`
+            }
+        }
+
+    }
+
+
+    updateHealthbar(player);
 
 }
 
@@ -92,7 +165,7 @@ function drawEnemies()
 {
     for (const enemy of enemies.filter(function (eny) { return eny.visible }))
     {
-        enemy.x -= enemyConfigs.SPEED
+        enemy.x -= enemyConfigs.SPEED * gameSpeed;
 
         if (enemy.label)
         {
@@ -104,30 +177,29 @@ function drawEnemies()
         enemy.healthbar.x = enemy.x;
 
 
-        if (enemy.health < 100 && enemy.healthbar.children[3].visible)
-        {
-            enemy.healthbar.children[3].visible = false;
-        }
-        else if (enemy.health < 75 && enemy.healthbar.children[2].visible)
-        {
-            enemy.healthbar.children[2].visible = false;
-        }
-        else if (enemy.health < 50 && enemy.healthbar.children[1].visible)
-        {
-            enemy.healthbar.children[1].visible = false;
-        }
+        updateHealthbar(enemy);
         //else if (enemy.health < 50 )
         //{
 
         //}
 
+
+        //made it to player
+        if (enemy.x <= player.x)
+        {
+            enemy.visible = false;
+            enemy.healthbar.visible = false
+            player.health -= enemy.damage;
+
+            showParticlesSM(player.x + 50, player.y);
+        }
     }
 }
 
 function drawBackground()
 {
-    background.x -= 1 * speed;
-    background2.x -= 1 * speed;
+    background.x -= 1 * speed * gameSpeed;
+    background2.x -= 1 * speed * gameSpeed;
 
     if (background.x <= -appWidth)
         background.x = appWidth;
@@ -139,16 +211,21 @@ function drawBackground()
 
 function drawProjectiles()
 {
+    adjustProjectilesForPlayerRotation();
+
     for (const projectile of projectiles.filter(function (p) { return p.visible }))
     {
-        projectile.x += projectile.xSpeed;
-        projectile.y += projectile.ySpeed;
-        projectile.rotation += projectile.rotationSpeed;
+        projectile.x += projectile.xSpeed + windSpeed * gameSpeed
+        projectile.y += projectile.ySpeed * gameSpeed
+        projectile.rotation += projectile.rotationSpeed * gameSpeed;
 
 
-        projectile.label.text = `${projectile.x} - ${projectile.x2()}, ${projectile.y} - ${projectile.y2()}`
-        projectile.label.x = projectile.x;
-        projectile.label.y = projectile.y
+        if (debugMode)
+        {
+            projectile.label.text = `${projectile.x} - ${projectile.x2()}, ${projectile.y} - ${projectile.y2()}`
+            projectile.label.x = projectile.x;
+            projectile.label.y = projectile.y
+        }
 
         if (projectile.y >= appHeight - (projectile.height) || projectile.x >= appWidth)
         {
@@ -158,6 +235,52 @@ function drawProjectiles()
     }
 }
 
+function adjustProjectilesForPlayerRotation()
+{
+    if (player.rotation == 0)
+    {
+        projectileYRotationModifier = 0;
+        projectileXRotationModifier = 0;
+        projectileFireOffsetYModifier = 0;
+        projectileFireOffsetXModifier = 0;
+    }
+
+    if (player.rotation > 0 && player.rotation < .1)
+    {
+        projectileYRotationModifier = 0;
+        projectileXRotationModifier = 0;
+        projectileFireOffsetYModifier = 0;
+        projectileFireOffsetXModifier = 0;
+    }
+    else if (player.rotation >= .1 && player.rotation < .2)
+    {
+        projectileYRotationModifier = 0;
+        projectileXRotationModifier = 0;
+        projectileFireOffsetYModifier = 0;
+        projectileFireOffsetXModifier = 0;
+    }
+    else if (player.rotation >= .2 && player.rotation < .3)
+    {
+        projectileYRotationModifier = 0;
+        projectileXRotationModifier = 0;
+        projectileFireOffsetYModifier = 0;
+        projectileFireOffsetXModifier = 0;
+    }
+    else if (player.rotation >= .3 && player.rotation < .4)
+    {
+        projectileYRotationModifier = 0;
+        projectileXRotationModifier = 0;
+        projectileFireOffsetYModifier = 0;
+        projectileFireOffsetXModifier = 0;
+    }
+    else if (player.rotation >= .4)
+    {
+        projectileYRotationModifier = 5;
+        projectileXRotationModifier = 0;
+        projectileFireOffsetYModifier = 45;
+        projectileFireOffsetXModifier = 0;
+    }
+}
 function checkProjectileHit()
 {
     for (const projectile of projectiles.filter(function (p) { return p.visible }))
@@ -191,7 +314,11 @@ function checkProjectileHit()
             }
         }
     }
+}
 
+function increaseWindSpeed()
+{
+    windSpeed += .1
 }
 
 function addBackground()
@@ -207,28 +334,20 @@ function fireBullets()
     projectile.beginFill('#000');
     projectile.drawRoundedRect(0, 0, projectileConfigs.bullet.width, projectileConfigs.bullet.height)
     projectile.drawRect(0, 0, projectileConfigs.bullet.height, projectileConfigs.bullet.height)
-    projectile.x = jet.x + projectileConfigs.bullet.fireOffsetX
-    projectile.y = jet.y + projectileConfigs.bullet.fireOffsetY
+    projectile.x = player.x + projectileConfigs.bullet.fireOffsetX + projectileFireOffsetXModifier;
+    projectile.y = player.y + projectileConfigs.bullet.fireOffsetY + projectileFireOffsetYModifier;
     projectile.endFill();
-    projectile.xSpeed = projectileConfigs.bullet.xSpeed;
-    projectile.ySpeed = projectileConfigs.bullet.ySpeed;
+    projectile.xSpeed = projectileConfigs.bullet.xSpeed + projectileXRotationModifier
+    projectile.ySpeed = projectileConfigs.bullet.ySpeed + projectileYRotationModifier
     projectile.rotationSpeed = projectileConfigs.bullet.rotationSpeed;
     projectile.x2 = () => projectile.x + projectileConfigs.bullet.width
     projectile.y2 = () => projectile.y + projectileConfigs.bullet.height
     projectile.damage = projectileConfigs.bullet.damage;
 
+    projectile.rotation = player.rotation
     app.stage.addChild(projectile);
 
-    var border = new PIXI.Graphics();
-
-    border.beginFill('#FF2D2E');
-    border.drawRect(0, 0, 30, 15)
-    border.x = projectile.x
-    border.y = projectile.y
-    border.endFill();
-
     projectiles.push(projectile);
-    app.stage.addChild(border);
 
     if (debugMode)
     {
@@ -251,8 +370,8 @@ function dropMissile()
     projectile.beginFill('#000');
     projectile.drawRoundedRect(0, 0, projectileConfigs.missile.width, projectileConfigs.missile.height)
     projectile.drawRect(0, -5, 15, 25)
-    projectile.x = jet.x + 80
-    projectile.y = jet.y + 85
+    projectile.x = player.x + 80
+    projectile.y = player.y + 85
     projectile.x2 = () => projectile.x + projectileConfigs.missile.width
     projectile.y2 = () => projectile.y + projectileConfigs.missile.height
     projectile.endFill();
@@ -278,19 +397,22 @@ function dropMissile()
 
 function dropBomb()
 {
+
+
     var projectile = new PIXI.Graphics();
 
     projectile.beginFill('#000');
     projectile.drawRoundedRect(0, 0, 20, 75, 50)
     projectile.drawRect(-10, 0, 40, 15)
-    projectile.x = jet.x + 85
-    projectile.y = jet.y + 85
+    projectile.x = player.x + 85
+    projectile.y = player.y + 85
     projectile.endFill();
-    projectile.xSpeed = .5;
-    projectile.ySpeed = 3;
-    projectile.rotationSpeed = 0;
-    projectile.x2 = () => projectile.x + projectileConfigs.missile.width
-    projectile.y2 = () => projectile.y + projectileConfigs.missile.height
+    projectile.xSpeed = projectileConfigs.bomb.xSpeed;
+    projectile.ySpeed = projectileConfigs.bomb.ySpeed;
+    projectile.rotationSpeed = projectileConfigs.bomb.rotationSpeed;
+    projectile.damage = projectileConfigs.bomb.damage;
+    projectile.x2 = () => projectile.x + projectileConfigs.bomb.width
+    projectile.y2 = () => projectile.y + projectileConfigs.bomb.height
 
     projectiles.push(projectile);
     app.stage.addChild(projectile);
@@ -310,19 +432,24 @@ function dropBomb()
 }
 function dropGlideBomb()
 {
-    var projectile = new PIXI.Graphics();
+    let projectile = PIXI.Sprite.from('/images/mc/bomb.png');
 
-    projectile.beginFill('#000');
-    projectile.drawRect(0, 0, 25, 100)
-    projectile.x = jet.x + 80
-    projectile.y = jet.y + 85
-    projectile.endFill();
-    projectile.xSpeed = 1;
-    projectile.ySpeed = 1;
-    projectile.rotationSpeed = 0;
-    projectile.x2 = () => projectile.x + projectileConfigs.missile.width
-    projectile.y2 = () => projectile.y + projectileConfigs.missile.height
+    //var projectile = new PIXI.Graphics();
 
+    //projectile.beginFill('#000');
+    // projectile.drawRect(0, 0, 25, 100)
+    projectile.x = player.x + 80
+    projectile.y = player.y + 85
+    //projectile.endFill();
+    projectile.width = projectileConfigs.glideBomb.width;
+    projectile.height = projectileConfigs.glideBomb.height;
+    projectile.xSpeed = projectileConfigs.glideBomb.xSpeed;
+    projectile.ySpeed = projectileConfigs.glideBomb.ySpeed;
+    projectile.rotationSpeed = projectileConfigs.glideBomb.rotationSpeed;
+    projectile.damage = projectileConfigs.glideBomb.damage;
+    projectile.x2 = () => projectile.x + projectileConfigs.glideBomb.width
+    projectile.y2 = () => projectile.y + projectileConfigs.glideBomb.height
+    projectile.rotation = -1
     projectiles.push(projectile);
     app.stage.addChild(projectile);
 
@@ -356,10 +483,11 @@ function addEnemyJet()
     jet.enemyId = getEnemyId();
     jet.dealDamage = (dmg) => health = health - dmg;
     jet.isDead = () => hitPoints > 0;
+    jet.damage = 50;
     enemies.push(jet);
     app.stage.addChild(jet)
 
-    addHealthbarToEnemy(jet, enemyType.AIR)
+    addHealthbar(jet, enemyType.AIR)
 
     if (debugMode)
     {
@@ -400,9 +528,10 @@ function addEnemyTank()
     tank.health = 100
     tank.enemyId = getEnemyId();
     tank.dealDamage = (dmg) => health = health - dmg;
+    tank.damage = 25;
     tank.isDead = () => hitPoints > 0;
 
-    addHealthbarToEnemy(tank, enemyType.GROUND);
+    addHealthbar(tank, enemyType.GROUND);
 
 
     if (debugMode)
@@ -420,7 +549,7 @@ function addEnemyTank()
     enemies.push(tank);
 }
 
-function addHealthbarToEnemy(enemy, typeOfEnemy)
+function addHealthbar(enemy, typeOfEnemy)
 {
     const healthbarContainer = new PIXI.Container();
 
@@ -431,8 +560,8 @@ function addHealthbarToEnemy(enemy, typeOfEnemy)
     }
     else
     {
-        healthbarContainer.x = enemy.x 
-        healthbarContainer.y = enemy.y 
+        healthbarContainer.x = enemy.x
+        healthbarContainer.y = enemy.y
     }
 
     var healthbar_green = new PIXI.Graphics();
@@ -477,6 +606,22 @@ function addHealthbarToEnemy(enemy, typeOfEnemy)
 
     app.stage.addChild(healthbarContainer);
 
+}
+
+function updateHealthbar(player)
+{
+    if (player.health < 100 && player.healthbar.children[3].visible)
+    {
+        player.healthbar.children[3].visible = false;
+    }
+    else if (player.health < 75 && player.healthbar.children[2].visible)
+    {
+        player.healthbar.children[2].visible = false;
+    }
+    else if (player.health < 50 && player.healthbar.children[1].visible)
+    {
+        player.healthbar.children[1].visible = false;
+    }
 }
 
 function doesIntersect(projectile, enemy)
@@ -719,6 +864,12 @@ const right = keyboard("ArrowRight");
 const left = keyboard("ArrowLeft");
 const up = keyboard("ArrowUp");
 const down = keyboard("ArrowDown");
+const d = keyboard("d");
+
+d.press = () => playerPitch = .004;
+
+
+d.release = () => playerPitch = -.004
 
 right.press = () =>
 {
@@ -742,7 +893,7 @@ up.press = () =>
 
 function stopGame()
 {
-    console.log(app.ticker);
+    console.log(player.rotation)
     app.ticker.destroy();
 }
 
