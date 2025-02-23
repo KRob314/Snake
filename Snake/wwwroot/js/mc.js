@@ -10,7 +10,7 @@ let speed = 2;
 let backgrounds = [];
 let projectiles = []
 let enemies = [];
-let debugMode = true;
+let debugMode = false;
 let roadY = appHeight - 150;
 
 let projectileConfigs = {
@@ -31,7 +31,7 @@ let projectileFireOffsetYModifier = 0
 
 let enemyType = { AIR: 'air', GROUND: 'ground' }
 let enemyConfigs = [{ EnemyType: enemyType.AIR, xSpeed: 2, armor: 0, damageDelt: 15, hitPoints: 25 },
-{ EnemyType: enemyType.GROUND, xSpeed: 2, armor: 0, damageDelt: 10, hitPoints: 50 }
+{ EnemyType: enemyType.GROUND, xSpeed: 1, armor: 0, damageDelt: 10, hitPoints: 50 }
 ]
 let playerPitch = 0;
 let points = 0;
@@ -223,7 +223,7 @@ if (debugMode)
 }
 
 
-/*addEnemyJet();*/
+addEnemyJet();
 addEnemyTank();
 addEnemyTank();
 addEnemyTank();
@@ -480,7 +480,7 @@ function drawProjectiles()
 
 
         //out of bounds
-        if (projectile.y >= appHeight - (projectile.height) || projectile.x >= appWidth)
+        if (projectile.y >= appHeight - (projectile.height) || projectile.x >= appWidth + 200)
         {
             if (projectile.flame)
             {
@@ -488,6 +488,7 @@ function drawProjectiles()
             }
             updatePlayerStats(projectile.type, false)
             projectile.visible = false;
+            projectile.destroy();
             projectiles.shift();
         }
     }
@@ -1751,6 +1752,8 @@ function stopGame()
     {
         clearInterval(debugStuffInterval);
     }
+
+    runDebugStuff();
 }
 
 function startGame()
