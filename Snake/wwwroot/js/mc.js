@@ -10,16 +10,16 @@ let speed = 2;
 let backgrounds = [];
 let projectiles = []
 let enemies = [];
-let debugMode = false;
+let debugMode = true;
 let roadY = appHeight - 150;
 
 let projectileConfigs = {
-    bullet: { type: 'bullet', enabled: true, width: 20, height: 10, xSpeed: 6, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 115, fireOffsetY: 45, damage: 10, lastTimeFired: performance.now(), fireCooldown: 100, ammoStart: 200, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 },
+    bullet: { type: 'bullet', enabled: true, width: 20, height: 10, xSpeed: 6, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 115, fireOffsetY: 45, damage: 10, splashDamage: 0, splashDamageRadius: 0, lastTimeFired: performance.now(), fireCooldown: 100, ammoStart: 200, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 },
     missile: {
-        type: 'missile', enabled: false, width: 50, height: 15, xSpeed: 8, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 50, fireOffsetY: 45, damage: 30, lastTimeFired: performance.now(), fireCooldown: 500, ammoStart: 25, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0, startSequences: [{ x: 0, y: 1.25, untilX: 0, untilY: 20 }, { x: 2, y: -.3, untilX: 150, untilY: -70 }]
+        type: 'missile', enabled: true, width: 50, height: 15, xSpeed: 8, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 50, fireOffsetY: 45, damage: 30, splashDamage: 0, splashDamageRadius: 0, lastTimeFired: performance.now(), fireCooldown: 500, ammoStart: 25, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0, startSequences: [{ x: 0, y: 1.25, untilX: 0, untilY: 20 }, { x: 2, y: -.3, untilX: 150, untilY: -70 }]
     },
-    bomb: { type: 'bomb', enabled: false, width: 10, height: 15, xSpeed: 1.5, ySpeed: 6, rotationSpeed: 0, fireOffsetX: 80, fireOffsetY: 45, damage: 100, lastTimeFired: performance.now(), fireCooldown: 500, ammoStart: 12, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 },
-    glideBomb: { type: 'glideBomb', enabled: false, width: 50, height: 50, xSpeed: 3.5, ySpeed: 3.5, rotationSpeed: -.003, fireOffsetX: 80, fireOffsetY: 45, damage: 40, lastTimeFired: performance.now(), fireCooldown: 600, ammoStart: 5, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 }
+    bomb: { type: 'bomb', enabled: true, width: 10, height: 15, xSpeed: 1.5, ySpeed: 6, rotationSpeed: 0, fireOffsetX: 80, fireOffsetY: 45, damage: 100, splashDamage: 20, splashDamageRadius: 500, lastTimeFired: performance.now(), fireCooldown: 500, ammoStart: 12, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 },
+    glideBomb: { type: 'glideBomb', enabled: true, width: 50, height: 50, xSpeed: 3.5, ySpeed: 3.5, rotationSpeed: -.003, fireOffsetX: 80, fireOffsetY: 45, damage: 40, splashDamage: 10, splashDamageRadius: 250, lastTimeFired: performance.now(), fireCooldown: 600, ammoStart: 5, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 }
 }
 
 
@@ -209,12 +209,24 @@ if (debugMode)
     line.rotation = player.rotation;
 
     app.stage.addChild(line);
+
+
+    var line745 = new PIXI.Graphics();
+
+    line745.lineStyle(4, '#000', 1);
+    line745.beginFill();
+    line745.moveTo(0, 745)
+    line745.lineTo(appWidth, 745)
+    line745.endFill();
+
+    app.stage.addChild(line745);
 }
 
 
-addEnemyJet();
-
-
+/*addEnemyJet();*/
+addEnemyTank();
+addEnemyTank();
+addEnemyTank();
 
 //const cnt = new PIXI.ParticleContainer();
 //app.stage.addChild(cnt);
@@ -717,54 +729,83 @@ function checkProjectileHit()
                     projectile.flame.destroy();
                 }
 
+                //splah damage only applies if there was a direct hit
+                if (projectile.splashDamageRadius && projectile.splashDamageRadius != 0)
+                {
+                    getEnemiesWithinSplashRadius(projectile, enemy);
+                }
 
 
                 updatePlayerStats(projectile.type, true)
                 setTimeout(function () { projectile.destroy(); }, 500)
 
-                if (enemy.health < 1)
-                {
-                    points += enemy.awardsPoints;
-                    enemy.visible = false;
-                    enemy.healthbar.destroy();
-
-                    if (enemy.smoke)
-                    {
-                        enemy.smoke.destroy();
-                        enemy.smoke = null;
-                    }
-
-                    showParticlesLG(enemy.x, enemy.y);
-
-                    //if (level > 2 && enemy.enemyType == enemyType.GROUND)
-                    //{
-                    //    addEnemyJet();
-                    //}
-
-                    if (enemy.enemyToSpawnAfterDeath != null)
-                    {
-                        if (enemy.enemyToSpawnAfterDeath.type == enemyType.AIR)
-                            addEnemyJet();
-                        else if (enemy.enemyToSpawnAfterDeath.type == enemyType.GROUND)
-                            addEnemyTank();
-                    }
-
-                    if (debugMode && enemy.label)
-                    {
-                        enemy.label.destroy();
-
-                    }
-
-                    setTimeout(function ()
-                    {
-                        enemy.destroy();
-                        checkNextLevel();
-                    }, 500)
-                }
+                checkIfEnemyIsDead(enemy);
 
 
             }
+
+
         }
+    }
+
+    function getEnemiesWithinSplashRadius(projectile, enemyToSkip)
+    {
+        let minX = projectile.x - projectile.splashDamageRadius;
+        let maxX = projectile.x2() + projectile.splashDamageRadius
+        let enemiesWithinRange = enemies.filter(function (eny)
+        {
+            return eny.visible &&
+                eny.x >= minX &&
+                eny.x2() <= maxX &&
+                eny != enemyToSkip 
+               /* doesIntersectY(projectile, eny, eny.enemyType)*/
+        })
+
+        for (const enemy of enemiesWithinRange)
+        {
+            enemy.health -= projectile.splashDamage;
+            showParticlesSplash(enemy.x, enemy.y)
+            checkIfEnemyIsDead(enemy);
+        }
+    }
+}
+
+function checkIfEnemyIsDead(enemy)
+{
+    if (enemy.health < 1)
+    {
+        points += enemy.awardsPoints;
+        enemy.visible = false;
+        enemy.healthbar.destroy();
+
+        if (enemy.smoke)
+        {
+            enemy.smoke.destroy();
+            enemy.smoke = null;
+        }
+
+        showParticlesLG(enemy.x, enemy.y);
+
+
+        if (enemy.enemyToSpawnAfterDeath != null)
+        {
+            if (enemy.enemyToSpawnAfterDeath.type == enemyType.AIR)
+                addEnemyJet();
+            else if (enemy.enemyToSpawnAfterDeath.type == enemyType.GROUND)
+                addEnemyTank();
+        }
+
+        if (debugMode && enemy.label)
+        {
+            enemy.label.destroy();
+
+        }
+
+        setTimeout(function ()
+        {
+            enemy.destroy();
+            checkNextLevel();
+        }, 500)
     }
 }
 
@@ -904,6 +945,8 @@ function dropBomb()
     projectile.y2 = () => projectile.y + projectileConfigs.bomb.height
     projectile.type = projectileConfigs.bomb.type;
     projectile.hasFinishedStartSequence = true;
+    projectile.splashDamage = projectileConfigs.bomb.splashDamage;
+    projectile.splashDamageRadius = projectileConfigs.bomb.splashDamageRadius;
     projectiles.push(projectile);
     app.stage.addChild(projectile);
 
@@ -1056,7 +1099,7 @@ function addEnemyTank(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
 
     if (debugMode)
     {
-        const txtProjectileLabel = new PIXI.Text(`${tank.x} - ${tank.y}`, { fontSize: 16, wordWrap: true, wordWrapWidth: tank.width });
+        const txtProjectileLabel = new PIXI.Text(`${tank.x} - ${tank.y}`, { fontSize: 20, wordWrap: true, wordWrapWidth: tank.width });
 
         txtProjectileLabel.x = tank.x;
         txtProjectileLabel.y = tank.y;
@@ -1132,16 +1175,25 @@ function addHealthbar(enemy, typeOfEnemy, xOffset = 0)
 
 function updateHealthbar(player)
 {
-    if (player.health < 100 && player.healthbar.children[3].visible)
+    if (player.health < 100 && player.health > 75)
     {
         player.healthbar.children[3].visible = false;
     }
-    else if (player.health < 75 && player.healthbar.children[2].visible)
+    else if (player.health <= 75 && player.health > 50)
     {
+        if (player.healthbar.children[3] && player.healthbar.children[3].visible)
+            player.healthbar.children[3].visible = false;
+
         player.healthbar.children[2].visible = false;
     }
-    else if (player.health < 50 && player.healthbar.children[1].visible)
+    else if (player.health <= 50)
     {
+        if (player.healthbar.children[3] && player.healthbar.children[3].visible)
+            player.healthbar.children[3].visible = false;
+
+        if (player.healthbar.children[2] && player.healthbar.children[2].visible)
+            player.healthbar.children[2].visible = false;
+
         player.healthbar.children[1].visible = false;
 
         if (player.enemyType && !player.smoke)
@@ -1150,6 +1202,8 @@ function updateHealthbar(player)
         }
 
     }
+
+
 }
 
 function addSmoke(enemy)
@@ -1181,63 +1235,61 @@ function addSmoke(enemy)
 function doesIntersect(projectile, enemy)
 {
     return doesIntersectX(projectile, enemy, enemy.enemyType) && doesIntersectY(projectile, enemy, enemy.enemyType);
-
-    function doesIntersectX(projectile, enemy, typeOfEnemy)
+}
+function doesIntersectX(projectile, enemy, typeOfEnemy)
+{
+    //console.log('doesIntersectX()')
+    if (typeOfEnemy == enemyType.AIR)
     {
-        //console.log('doesIntersectX()')
-        if (typeOfEnemy == enemyType.AIR)
+        if (projectile.x >= enemy.x)
         {
-            if (projectile.x >= enemy.x)
-            {
-                return true;
-            }
+            return true;
         }
-        else
+    }
+    else
+    {
+        if (isWithIn(projectile.x, enemy.x, enemy.x2()))
         {
-            if (isWithIn(projectile.x, enemy.x, enemy.x2()))
-            {
 
-                return true;
-            }
+            return true;
         }
-
-        return false;
     }
 
-    function doesIntersectY(projectile, enemy, typeOfEnemy) 
-    {
-        //console.log('doesIntersectY()')
-        if (typeOfEnemy == enemyType.AIR)
-        {
-            if (isWithinDistance(projectile.y, enemy.y, 20))
-            {
-                return true;
-            }
-        }
-        else
-        {
-            if (projectile.type == 'bomb')
-            {
-                if (isWithIn(projectile.y, enemy.y, enemy.y2()))
-                {
-                    return true;
-                }
-            }
-            else
-            {
-                if (isWithIn(projectile.y, enemy.y1(), enemy.y2()))
-                {
-                    return true;
-                }
-            }
-
-        }
-
-        return false;
-
-    }
+    return false;
 }
 
+function doesIntersectY(projectile, enemy, typeOfEnemy) 
+{
+    //console.log('doesIntersectY()')
+    if (typeOfEnemy == enemyType.AIR)
+    {
+        if (isWithinDistance(projectile.y, enemy.y, 20))
+        {
+            return true;
+        }
+    }
+    else
+    {
+        if (projectile.type == 'bomb')
+        {
+            if (isWithIn(projectile.y, enemy.y, enemy.y2()))
+            {
+                return true;
+            }
+        }
+        else
+        {
+            if (isWithIn(projectile.y, enemy.y1(), enemy.y2()))
+            {
+                return true;
+            }
+        }
+
+    }
+
+    return false;
+
+}
 function isWithinDistance(point1, point2, distance)
 {
     return Math.abs(point1 - point2) < distance;
@@ -1246,6 +1298,45 @@ function isWithinDistance(point1, point2, distance)
 function isWithIn(pointToTest, pointMin, pointMax)
 {
     return pointToTest >= pointMin && pointToTest <= pointMax
+}
+
+//showParticlesSplash(500, 500);
+
+function showParticlesSplash(x, y)
+{
+    const cnt = new PIXI.ParticleContainer();
+    app.stage.addChild(cnt);
+
+    const emitter = new PIXI.particles.Emitter(cnt, {
+        lifetime: { min: 0.1, max: 2 },
+        emit: true,
+        frequency: 1,
+        spawnChance: 1,
+        particlesPerWave: 15,
+        emitterLifetime: 1.5,
+        maxParticles: 25,
+        pos: { x: x, y: y },
+        autoUpdate: true,
+        addAtBack: true,
+        behaviors: [
+            {
+                type: 'spawnPoint',
+                config: {}
+            },
+            //{
+            //    type: 'spawnShape',
+            //    config: { type: 'torus', data: { radius: 42, innerRadius: 20, affectRotation: true } },
+            //},
+            { type: 'moveSpeedStatic', config: { min: 50, max: 500 } },
+            { type: 'spawnBurst', config: { start: 0, spacing: 45, distance: 10, } },
+            { type: 'textureSingle', config: { texture: PIXI.Texture.WHITE } },
+            /*  { type: 'spawnBurst', config: { start: 0, spacing: 45, distance: 30, } }*/
+            { type: 'colorStatic', config: { color: "#f0ffff" }, },
+            { type: 'alphaStatic', config: { alpha: 0.75 }, },
+            { type: 'scale', config: { scale: { list: [{ value: 0.1, time: 0 }, { value: .3, time: 0.3 }, { value: 0.1, time: 1 }] } } }
+        ],
+
+    });
 }
 
 function showParticlesSM(x, y)
