@@ -10,7 +10,7 @@ let speed = 2;
 let backgrounds = [];
 let projectiles = []
 let enemies = [];
-let debugMode = false;
+let debugMode = true;
 let roadY = appHeight - 150;
 
 let projectileConfigs = {
@@ -30,8 +30,13 @@ let projectileFireOffsetXModifier = 0
 let projectileFireOffsetYModifier = 0
 
 let enemyType = { AIR: 'air', GROUND: 'ground' }
-let enemyConfigs = [{ EnemyType: enemyType.AIR, xSpeed: 2, armor: 0, damageDelt: 15, hitPoints: 25 },
-{ EnemyType: enemyType.GROUND, xSpeed: 1, armor: 0, damageDelt: 10, hitPoints: 50 }
+let enemySubType = { JET: 'jet', HELI: 'heli', TANK: 'tank' }
+let enemyConfigs = [{ EnemyType: enemyType.AIR, EnemySubType: enemySubType.JET, xSpeed: 2, armor: 0, damageDelt: 15, hitPoints: 25, healthbarOffsetX: -10 },
+{ EnemyType: enemyType.AIR, EnemySubType: enemySubType.HELI, xSpeed: .5, ySpeed: .3, yMax: appHeight * .6, yMin: appHeight * .15, yRandom: 0, armor: 0, damageDelt: 15, hitPoints: 25, healthbarOffsetY: 20, healthbarOffsetX: -20 },
+{
+    EnemyType: enemyType.GROUND, EnemySubType: enemySubType.TANK, xSpeed: 1, armor: 0, damageDelt: 10, hitPoints: 50, healthbarOffsetX: -10, images:
+        [PIXI.Texture.from('/images/mc/tank2a.png'), PIXI.Texture.from('/images/mc/tank2b.png'), PIXI.Texture.from('/images/mc/tank2c.png')]
+}
 ]
 let playerPitch = 0;
 let points = 0;
@@ -44,7 +49,7 @@ let fireCooldown = 0;
 let lastTimeFired = performance.now();
 let debugStuffInterval = null;
 let gameStartTimer = setTimeout(startGame, 5000)
-
+let loopCounter = 1;
 let playerStats = {
     shots: {
         bullets: { shots: 0, hits: 0, misses: 0, accuracyRate: 0 },
@@ -191,13 +196,13 @@ if (debugMode)
 
     //player.rotation = .61
 
-    let tank1 = addEnemyTank();
-    addSmoke(tank1);
+    //let tank1 = addEnemyTank();
+    //addSmoke(tank1);
 
-    let jet1 = addEnemyJet();
-    addSmoke(jet1);
+    //let jet1 = addEnemyJet();
+    //addSmoke(jet1);
 
-    startGame();
+    //startGame();
 
     var line = new PIXI.Graphics();
 
@@ -223,51 +228,12 @@ if (debugMode)
 }
 
 
+
+
+
+addEnemyHeli();
 addEnemyJet();
 addEnemyTank();
-addEnemyTank();
-addEnemyTank();
-
-//const cnt = new PIXI.ParticleContainer();
-//app.stage.addChild(cnt);
-
-//const emitter = new PIXI.particles.Emitter(cnt, {
-//    lifetime: { min: 0.1, max: 5 },
-//    emit: true,
-//    frequency: 1,
-//    spawnChance: 1,
-//    particlesPerWave: 15,
-//    emitterLifetime: 5,
-//    maxParticles: 500,
-//    pos: { x: 300, y: 300 },
-//    autoUpdate: true,
-//    addAtBack: true,
-//    behaviors: [
-//        /* {type: 'spawnPoint',config: {}},*/
-//        { type: 'spawnShape', config: { type: 'rect', data: { x: 0, y: 0, w: 100, h: 0 } }, },
-//        /*  { type: 'moveSpeedStatic', config: { min: 50, max: 100 } },*/
-//        //{ type: 'spawnBurst', config: { start: 0, spacing: 10, distance: 50, } },
-//        { type: 'textureSingle', config: { texture: PIXI.Texture.WHITE  /*PIXI.Texture.from("/images/mc/flame.jpg")*/ } },
-//        /*{ type: 'spawnBurst', config: { start: 0, spacing: 45, distance: 30, } },*/
-//        { type: 'color', config: { isStepped: true, color: { list: [{ value: '#000000', time: 0 }, { value: '#3f3f3f', time: 0.2 }, { value: '#949494', time: 0.4 }, { value: '#d4d4d4', time: .6 }, { value: '#000', time: 1 }] } }, },
-
-//        /*   { type: 'alphaStatic', config: { alpha: 0.75 }, },*/
-//        { type: 'alpha', config: { alpha: { list: [{ value: 0, time: 0 }, { value: .5, time: 0.3 }, { value: 1, time: 0.5 }, { value: .2, time: 1 },], }, }, },
-//        { type: 'scale', config: { scale: { list: [{ value: 0.2, time: 0 }, { value: 1, time: 0.3 }, { value: 0.1, time: 1 }] } } },
-//        //{ type: "movePath", config: { path: "cos(x/100) * 30.0 + 10.0 * random()", speed: { list: [{ value: 10, time: 0 }, { value: 50, time: 0.25 }, { value: 100, time: 1 }], }, minMult: 0.1 }, },
-//        //{type: "movePath",config: { path: "cos(x/100) * 30.0 + 10.0 * random()", speed: { list: [{value: 10, time: 0}, {value: 100, time: 0.25}, {value: 450, time: 1}],   },   minMult: 0.1  },},
-//        {
-//            type: 'moveAcceleration', config: { accel: { x: 0, y: 0, }, minStart: 10, maxStart: 20, rotate: true },
-
-//        },
-//    ],
-
-//});
-
-
-
-
-//addEnemyJet();
 
 function gameLoop()
 {
@@ -278,7 +244,7 @@ function gameLoop()
     drawEnemies();
     drawBackground()
     updateGameText();
-
+    loopCounter += 1;
 
 }
 
@@ -360,8 +326,48 @@ function drawEnemies()
             enemy.label.y = enemy.y;
         }
 
-        enemy.healthbar.x = enemy.x;
+        if (enemy.enemySubType == enemySubType.HELI)
+        {
+            enemy.y += enemy.ySpeed;
 
+            if (enemy.y >= enemy.yMax)// go back up
+            {
+                enemy.yRandom = getRandomInt(enemy.yMin, enemy.yMax);
+                enemy.ySpeed = -1;
+            }
+            else if (enemy.y <= enemy.yRandom)
+            {
+                enemy.ySpeed = 1;
+            }
+
+        }
+
+
+        enemy.healthbar.x = enemy.x + enemy.healthbarOffsetX;
+
+        if (enemy.healthbarOffsetY)
+        {
+            enemy.healthbar.y = enemy.y + enemy.healthbarOffsetY
+        }
+
+        //change texture to make it look like tank is moving
+        if (loopCounter / 10 == 1)
+        {
+            if (enemy.enemySubType == enemySubType.TANK)
+            {
+                if (enemy.currentImageIndex == enemy.images.length - 1)
+                {
+                    enemy.currentImageIndex = 0
+                }
+                else
+                {
+                    enemy.currentImageIndex += 1;
+                }
+                enemy.texture = enemy.images[enemy.currentImageIndex];
+
+                loopCounter = 1;
+            }
+        }
 
         updateHealthbar(enemy);
         //else if (enemy.health < 50 )
@@ -758,8 +764,8 @@ function checkProjectileHit()
             return eny.visible &&
                 eny.x >= minX &&
                 eny.x2() <= maxX &&
-                eny != enemyToSkip 
-               /* doesIntersectY(projectile, eny, eny.enemyType)*/
+                eny != enemyToSkip
+            /* doesIntersectY(projectile, eny, eny.enemyType)*/
         })
 
         for (const enemy of enemiesWithinRange)
@@ -1008,9 +1014,74 @@ function dropGlideBomb()
     ammo.glideBombs -= 1;
 }
 
+function addAllConfigsToObj(config, objTemp)
+{
+    for (let prop in config)
+    {
+        objTemp[prop] = config[prop]
+    }
+}
+
+function addEnemyHeli(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
+{
+    let heliConfig = enemyConfigs.find(function (x) { return x.EnemyType == enemyType.AIR && x.EnemySubType == enemySubType.HELI })
+
+
+
+    let currenthelis = enemies.filter(function (eny) { return eny.enemyType == enemyType.AIR })
+    let spawnX = appWidth;
+
+    if (currenthelis.length > 0)
+    {
+        let lastHeli = currenthelis[currentHelis.length - 1];
+        spawnX = lastHeli.x2() + xSpaceToadd;
+    }
+
+    let heli = PIXI.Sprite.from('/images/mc/helicopter.png');
+    //bunny.anchor.set(0.5);
+    heli.width = 150
+    heli.height = 100
+    heli.x = spawnX + xSpaceToadd;
+    heli.x2 = () => heli.x + heli.width;
+    heli.y = 200
+    heli.y1 = () => heli.y
+    heli.y2 = () => heli.y + heli.height;
+    heli.enemyType = enemyType.AIR
+    heli.enemySubType = heliConfig.EnemySubType
+    heli.hitPoints = heliConfig.hitPoints;
+    heli.health = 100
+    heli.enemyId = getEnemyId();
+    heli.dealDamage = (dmg) => health = health - dmg;
+    heli.isDead = () => hitPoints > 0;
+    heli.damage = 50;
+    heli.awardsPoints = 10;
+    heli.xSpeed = heliConfig.xSpeed;
+    heli.ySpeed = heliConfig.ySpeed;
+    heli.enemyToSpawnAfterDeath = enemyToSpawnAfterDeath;
+
+    addAllConfigsToObj(heliConfig, heli);
+
+    enemies.push(heli);
+    app.stage.addChild(heli)
+
+    addHealthbar(heli, enemyType.AIR, -30)
+
+    if (debugMode)
+    {
+        const txtProjectileLabel = new PIXI.Text(`${heli.x} - ${heli.x2}, ${heli.y} - ${heli.y2}`, fontStyle);
+
+        txtProjectileLabel.x = heli.x;
+        txtProjectileLabel.y = heli.y;
+        heli.label = txtProjectileLabel
+        app.stage.addChild(txtProjectileLabel);
+    }
+
+    return heli;
+}
+
 function addEnemyJet(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
 {
-    let jetConfig = enemyConfigs.find(function (x) { return x.EnemyType == enemyType.AIR })
+    let jetConfig = enemyConfigs.find(function (x) { return x.EnemyType == enemyType.AIR && x.EnemySubType == enemySubType.JET })
 
     let currentJets = enemies.filter(function (eny) { return eny.enemyType == enemyType.AIR })
     let spawnX = appWidth;
@@ -1031,7 +1102,8 @@ function addEnemyJet(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
     jet.y = 80
     jet.y1 = () => jet.y
     jet.y2 = () => jet.y + jet.height;
-    jet.enemyType = enemyType.AIR
+    jet.enemyType = enemyType.AIR;
+    jet.enemySubType = jetConfig.EnemySubType;
     jet.hitPoints = jetConfig.hitPoints;
     jet.health = 100
     jet.enemyId = getEnemyId();
@@ -1041,6 +1113,7 @@ function addEnemyJet(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
     jet.awardsPoints = 10;
     jet.xSpeed = jetConfig.xSpeed;
     jet.enemyToSpawnAfterDeath = enemyToSpawnAfterDeath;
+    jet.healthbarOffsetX = jetConfig.healthbarOffsetX;
     enemies.push(jet);
     app.stage.addChild(jet)
 
@@ -1063,7 +1136,7 @@ function addEnemyJet(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
 
 function addEnemyTank(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
 {
-    let tankConfig = enemyConfigs.find(function (x) { return x.EnemyType == enemyType.GROUND })
+    let tankConfig = enemyConfigs.find(function (x) { return x.EnemyType == enemyType.GROUND && x.EnemySubType == enemySubType.TANK })
 
     let currentTanks = enemies.filter(function (eny) { return eny.enemyType == enemyType.GROUND })
     let spawnX = appWidth;
@@ -1076,7 +1149,6 @@ function addEnemyTank(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
 
     let tank = PIXI.Sprite.from('/images/mc/tank2.png');
     //bunny.anchor.set(0.5);
-    //jet.height = 50
     tank.width = 200
     tank.height = 120
     tank.x = spawnX + xSpaceToadd
@@ -1085,6 +1157,7 @@ function addEnemyTank(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
     tank.y1 = () => tank.y + 75
     tank.y2 = () => tank.y + tank.height;
     tank.enemyType = enemyType.GROUND
+    tank.enemySubType = tankConfig.EnemySubType;
     tank.hitPoints = tankConfig.hitPoints;
     tank.health = 100
     tank.enemyId = getEnemyId();
@@ -1094,7 +1167,9 @@ function addEnemyTank(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
     tank.awardsPoints = 10;
     tank.xSpeed = tankConfig.xSpeed;
     tank.enemyToSpawnAfterDeath = enemyToSpawnAfterDeath;
-
+    tank.healthbarOffsetX = tankConfig.healthbarOffsetX;
+    tank.images = tankConfig.images;
+    tank.currentImageIndex = 0;
     addHealthbar(tank, enemyType.GROUND);
 
 
@@ -1123,6 +1198,16 @@ function addHealthbar(enemy, typeOfEnemy, xOffset = 0)
     {
         healthbarContainer.x = enemy.x + enemy.width + xOffset
         healthbarContainer.y = enemy.y + (enemy.height * .80)
+    }
+    else if (enemy.enemySubType && enemy.enemySubType == enemySubType.JET)
+    {
+        healthbarContainer.x = enemy.x + xOffset
+        healthbarContainer.y = enemy.y
+    }
+    else if (enemy.enemySubType && enemy.enemySubType == enemySubType.HELI)
+    {
+        healthbarContainer.x = enemy.x + xOffset
+        healthbarContainer.y = enemy.y + 20
     }
     else
     {
