@@ -29,6 +29,10 @@ let projectileYRotationModifier = 0
 let projectileFireOffsetXModifier = 0
 let projectileFireOffsetYModifier = 0
 
+let flameRotationModifier = 0;
+let flameXRotationModifier = 0;
+let flameYRotationModifier = 0;
+
 let enemyType = { AIR: 'air', GROUND: 'ground' }
 let enemySubType = { JET: 'jet', HELI: 'heli', TANK: 'tank' }
 let enemyConfigs = [{ EnemyType: enemyType.AIR, EnemySubType: enemySubType.JET, xSpeed: 2, armor: 0, damageDelt: 15, hitPoints: 25, healthbarOffsetX: -10 },
@@ -48,7 +52,7 @@ let ammo = { bullets: projectileConfigs.bullet.ammoStart, missiles: projectileCo
 let fireCooldown = 0;
 let lastTimeFired = performance.now();
 let debugStuffInterval = null;
-let gameStartTimer = setTimeout(startGame, 5000)
+let gameStartTimer = setTimeout(startGame, 500)
 let loopCounter = 1;
 let playerStats = {
     shots: {
@@ -204,6 +208,8 @@ if (debugMode)
 
     //startGame();
 
+    player.rotation = .16;
+
     var line = new PIXI.Graphics();
 
     line.lineStyle(5, '#fff', 1);
@@ -211,7 +217,7 @@ if (debugMode)
     line.moveTo(player.x, player.y + 50)
     line.lineTo(appWidth - player.x, player.y + 50)
     line.endFill();
-    line.rotation = player.rotation;
+    //line.rotation = player.rotation;
 
     app.stage.addChild(line);
 
@@ -227,13 +233,10 @@ if (debugMode)
     app.stage.addChild(line745);
 }
 
-
-
-
-
 addEnemyHeli();
-addEnemyJet();
-addEnemyTank();
+//addEnemyHeli();
+//addEnemyJet();
+//addEnemyTank();
 
 function gameLoop()
 {
@@ -270,6 +273,11 @@ function drawPlayer()
         if (player.rotation > 0)
         {
             player.label.text = `${player.x} - ${player.y}, ${player.rotation}`
+
+            //if (line)
+            //{
+            //    line.rotation = player.rotation;
+            //}
 
             //if (player.rotation > 0 && player.rotation < .1)
             //{
@@ -319,9 +327,13 @@ function drawEnemies()
     {
         enemy.x -= enemy.xSpeed * gameSpeed;
 
-        if (enemy.label)
+        if (debugMode && enemy.label)
         {
-            enemy.label.text = `${enemy.x} - ${enemy.x2()}, ${enemy.y} - ${enemy.y2()}`;
+            if (loopCounter / 3 == 1)
+            {
+                enemy.label.text = `${enemy.x.toFixed(0)} - ${enemy.x2().toFixed(0)}, ${enemy.y.toFixed(0)} - ${enemy.y2().toFixed(0)}`;
+            }
+
             enemy.label.x = enemy.x;
             enemy.label.y = enemy.y;
         }
@@ -343,7 +355,13 @@ function drawEnemies()
         }
 
 
-        enemy.healthbar.x = enemy.x + enemy.healthbarOffsetX;
+        enemy.healthbar.x = enemy.x;
+
+        if (enemy.healthbarOffsetX)
+        {
+            enemy.healthbar.x += enemy.healthbarOffsetX;
+        }
+
 
         if (enemy.healthbarOffsetY)
         {
@@ -378,7 +396,9 @@ function drawEnemies()
         if (enemy.smoke && enemy.smoke.visible)
         {
             enemy.smoke.x -= enemy.xSpeed;
-            /*  enemy.smoke.y = enemy.y;*/
+
+            if (enemy.enemySubType == enemySubType.HELI)
+                enemy.smoke.y = enemy.y - 45;
         }
 
         //made it to player
@@ -427,9 +447,9 @@ function drawProjectiles()
 
             if (projectile.flame)
             {
-                projectile.flame.x = projectile.x
-                projectile.flame.y = projectile.y
-                projectile.flame.rotation = projectile.rotation;
+                projectile.flame.x = projectile.x + projectile.flame.flameXRotationModifier
+                projectile.flame.y = projectile.y + projectile.flame.flameYRotationModifier
+
             }
 
         }
@@ -477,7 +497,7 @@ function drawProjectiles()
 
         if (debugMode)
         {
-            projectile.label.text = `${projectile.x} - ${projectile.x2()}, ${projectile.y} - ${projectile.y2()}`
+            projectile.label.text = `${projectile.x.toFixed(0)} - ${projectile.x2().toFixed(0)}, ${projectile.y.toFixed(0)} - ${projectile.y2().toFixed(0)}`
             projectile.label.x = projectile.x;
             projectile.label.y = projectile.y - 50
         }
@@ -488,17 +508,17 @@ function drawProjectiles()
         //out of bounds
         if (projectile.y >= appHeight - (projectile.height) || projectile.x >= appWidth + 200)
         {
-            if (projectile.flame)
-            {
-                projectile.flame.destroy();
-            }
+            removeProjectile(projectile);
+
+
             updatePlayerStats(projectile.type, false)
-            projectile.visible = false;
-            projectile.destroy();
-            projectiles.shift();
+
+
         }
     }
 }
+
+
 
 function adjustProjectilesForPlayerRotation()
 {
@@ -514,6 +534,9 @@ function adjustProjectilesForPlayerRotation()
         projectileConfigs.missile.XRotationModifier = 0;
         projectileConfigs.missile.fireOffsetXModifier = 0;
         projectileConfigs.missile.fireOffsetYModifier = 0;
+
+        flameXRotationModifier = -65;
+        flameYRotationModifier = 0;
 
         return;
     }
@@ -531,6 +554,9 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = 0;
             projectileConfigs.missile.fireOffsetXModifier = -10;
             projectileConfigs.missile.fireOffsetYModifier = 30;
+
+            flameXRotationModifier = -65;
+            flameYRotationModifier = -6;
         }
 
         else if (player.rotation >= .1 && player.rotation < .15)
@@ -545,6 +571,10 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.fireOffsetXModifier = 0;
             projectileConfigs.missile.fireOffsetYModifier = 10;
 
+
+            flameXRotationModifier = -65;
+            flameYRotationModifier = -8;
+
         }
         else if (player.rotation >= .15 && player.rotation < .2)
         {
@@ -557,6 +587,10 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = .25;
             projectileConfigs.missile.fireOffsetXModifier = -10;
             projectileConfigs.missile.fireOffsetYModifier = 30;
+
+
+            flameXRotationModifier = -65;
+            flameYRotationModifier = -13;
         }
         else if (player.rotation >= .2 && player.rotation < .25)
         {
@@ -569,6 +603,9 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = .25;
             projectileConfigs.missile.fireOffsetXModifier = -10;
             projectileConfigs.missile.fireOffsetYModifier = 45;
+
+            flameXRotationModifier = -65;
+            flameYRotationModifier = -17;
         }
         else if (player.rotation >= .25 && player.rotation < .3)
         {
@@ -581,6 +618,9 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = .25;
             projectileConfigs.missile.fireOffsetXModifier = -10;
             projectileConfigs.missile.fireOffsetYModifier = 45;
+
+            flameXRotationModifier = -63;
+            flameYRotationModifier = -18;
         }
         return;
     }
@@ -598,6 +638,9 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = 1;
             projectileConfigs.missile.fireOffsetXModifier = -10;
             projectileConfigs.missile.fireOffsetYModifier = 45;
+
+            flameXRotationModifier = -60;
+            flameYRotationModifier = -23;
         }
         else if (player.rotation >= .35 && player.rotation < .4)
         {
@@ -610,6 +653,10 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = 2;
             projectileConfigs.missile.fireOffsetXModifier = -10;
             projectileConfigs.missile.fireOffsetYModifier = 45;
+
+            flameXRotationModifier = -60;
+            flameYRotationModifier = -24;
+
         }
         else if (player.rotation >= .4 && player.rotation < .45)
         {
@@ -622,6 +669,9 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = 2;
             projectileConfigs.missile.fireOffsetXModifier = -10;
             projectileConfigs.missile.fireOffsetYModifier = 45;
+
+            flameXRotationModifier = -60;
+            flameYRotationModifier = -28;
 
         }
         else if (player.rotation >= .45 && player.rotation < .47)
@@ -636,6 +686,9 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.fireOffsetXModifier = -5;
             projectileConfigs.missile.fireOffsetYModifier = 45;
 
+            flameXRotationModifier = -58;
+            flameYRotationModifier = -29;
+
         }
         else if (player.rotation >= .47 && player.rotation < .5)
         {
@@ -648,6 +701,9 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = 2;
             projectileConfigs.missile.fireOffsetXModifier = -10;
             projectileConfigs.missile.fireOffsetYModifier = 45;
+
+            flameXRotationModifier = -58;
+            flameYRotationModifier = -30;
 
         }
         else if (player.rotation >= .5 && player.rotation < .54)
@@ -663,6 +719,9 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.fireOffsetXModifier = -10;
             projectileConfigs.missile.fireOffsetYModifier = 45;
 
+            flameXRotationModifier = -58;
+            flameYRotationModifier = -33;
+
         }
         else if (player.rotation >= .54 && player.rotation < .57)
         {
@@ -675,6 +734,9 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = 2;
             projectileConfigs.missile.fireOffsetXModifier = -15;
             projectileConfigs.missile.fireOffsetYModifier = 50;
+
+            flameXRotationModifier = -58;
+            flameYRotationModifier = -35;
         }
         else if (player.rotation >= .57 && player.rotation < .6)
         {
@@ -687,8 +749,11 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = 2;
             projectileConfigs.missile.fireOffsetXModifier = -15;
             projectileConfigs.missile.fireOffsetYModifier = 50;
+
+            flameXRotationModifier = -56;
+            flameYRotationModifier = -37;
         }
-        else if (player.rotation >= .6 && player.rotation < .65)
+        else if (player.rotation >= .6 && player.rotation < .64)
         {
             projectileYRotationModifier = 6;
             projectileXRotationModifier = 2;
@@ -700,8 +765,27 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.fireOffsetXModifier = -45;
             projectileConfigs.missile.fireOffsetYModifier = 40;
 
+            flameXRotationModifier = -55;
+            flameYRotationModifier = -39;
+
         }
-        else if (player.rotation >= .65)
+        else if (player.rotation >= .64 && player.rotation < .67)
+        {
+            projectileYRotationModifier = 6;
+            projectileXRotationModifier = 2;
+            projectileFireOffsetYModifier = 65;
+            projectileFireOffsetXModifier = -25;
+
+            projectileConfigs.missile.YRotationModifier = 8;
+            projectileConfigs.missile.XRotationModifier = 2;
+            projectileConfigs.missile.fireOffsetXModifier = -45;
+            projectileConfigs.missile.fireOffsetYModifier = 40;
+
+            flameXRotationModifier = -52;
+            flameYRotationModifier = -38;
+
+        }
+        else if (player.rotation >= .67)
         {
             projectileYRotationModifier = 6;
             projectileXRotationModifier = 2;
@@ -712,6 +796,10 @@ function adjustProjectilesForPlayerRotation()
             projectileConfigs.missile.XRotationModifier = 2;
             projectileConfigs.missile.fireOffsetXModifier = -45;
             projectileConfigs.missile.fireOffsetYModifier = 60;
+
+
+            flameXRotationModifier = -52;
+            flameYRotationModifier = -42;
 
             projectileRotationModifier = .01;
         }
@@ -727,14 +815,9 @@ function checkProjectileHit()
         {
             if (doesIntersect(projectile, enemy))
             {
-                projectile.visible = false;
+
                 showParticlesSM(projectile.x, projectile.y);
                 enemy.health -= projectile.damage;
-
-                if (projectile.flame)
-                {
-                    projectile.flame.destroy();
-                }
 
                 //splah damage only applies if there was a direct hit
                 if (projectile.splashDamageRadius && projectile.splashDamageRadius != 0)
@@ -744,7 +827,8 @@ function checkProjectileHit()
 
 
                 updatePlayerStats(projectile.type, true)
-                setTimeout(function () { projectile.destroy(); }, 500)
+                //setTimeout(function () { removeProjectile(projectile) }, 200)
+                removeProjectile(projectile);
 
                 checkIfEnemyIsDead(enemy);
 
@@ -926,7 +1010,7 @@ function dropMissile()
 
     ammo.missiles -= 1;
 
-    //addMissileParticles(projectile);
+    addMissileParticles(projectile);
 }
 
 function dropBomb()
@@ -1028,19 +1112,19 @@ function addEnemyHeli(xSpaceToadd = 0, enemyToSpawnAfterDeath = null)
 
 
 
-    let currenthelis = enemies.filter(function (eny) { return eny.enemyType == enemyType.AIR })
+    let currentHelis = enemies.filter(function (eny) { return eny.enemySubType == enemySubType.HELI })
     let spawnX = appWidth;
 
-    if (currenthelis.length > 0)
+    if (currentHelis.length > 0)
     {
-        let lastHeli = currenthelis[currentHelis.length - 1];
+        let lastHeli = currentHelis[currentHelis.length - 1];
         spawnX = lastHeli.x2() + xSpaceToadd;
     }
 
     let heli = PIXI.Sprite.from('/images/mc/helicopter.png');
     //bunny.anchor.set(0.5);
-    heli.width = 150
-    heli.height = 100
+    heli.width = 200
+    heli.height = 75
     heli.x = spawnX + xSpaceToadd;
     heli.x2 = () => heli.x + heli.width;
     heli.y = 200
@@ -1327,10 +1411,21 @@ function doesIntersectX(projectile, enemy, typeOfEnemy)
     //console.log('doesIntersectX()')
     if (typeOfEnemy == enemyType.AIR)
     {
-        if (projectile.x >= enemy.x)
+        if (enemy.enemySubType == enemySubType.JET)
         {
-            return true;
+            if (projectile.x >= enemy.x)
+            {
+                return true;
+            }
         }
+        else if (enemy.enemySubType == enemySubType.HELI)
+        {
+            if ((projectile.x - 5) >= enemy.x)
+            {
+                return true;
+            }
+        }
+
     }
     else
     {
@@ -1349,10 +1444,43 @@ function doesIntersectY(projectile, enemy, typeOfEnemy)
     //console.log('doesIntersectY()')
     if (typeOfEnemy == enemyType.AIR)
     {
-        if (isWithinDistance(projectile.y, enemy.y, 20))
+        if (enemy.enemySubType == enemySubType.JET)
         {
-            return true;
+            if (isWithinDistance(projectile.y, enemy.y, 20))
+            {
+                return true;
+            }
         }
+        else if (enemy.enemySubType == enemySubType.HELI)
+        {
+            if (projectile.y > enemy.y2())
+                return false;
+
+            //figure out location of hit
+            let projectileAndEnemyXDifference = projectile.x - enemy.x;
+
+            if (projectileAndEnemyXDifference > enemy.width)
+                return false;
+
+            if (projectileAndEnemyXDifference < enemy.width * .3)
+            {
+                //front
+                if (projectile.y >= enemy.y1() && projectile.y <= (enemy.y2() -10 ))
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (projectile.y >= enemy.y1() && projectile.y <= enemy.y2())
+                {
+                    return true;
+                }
+            }
+
+
+        }
+
     }
     else
     {
@@ -1557,11 +1685,14 @@ function addMissileParticles(projectile)
 
     let flame = PIXI.Sprite.from('/images/mc/jetFlame1_trans.png');
     //bunny.anchor.set(0.5);
-    flame.x = projectile.x - 65
-    flame.y = projectile.y;
+    flame.x = projectile.x - 69
+    flame.y = projectile.y
     flame.visible = false;
+    flame.rotation = player.rotation;
     //flame.width = 12
     /* flame.height = 20;*/
+    flame.flameXRotationModifier = flameXRotationModifier;
+    flame.flameYRotationModifier = flameYRotationModifier;
     projectile.flame = flame;
 
 
@@ -1660,9 +1791,10 @@ function setupNextLevel(forceLevel = null)
         {
             let tankConfig = spawnConfig.tanks;
             let jetConfig = spawnConfig.jets;
+            let heliConfig = spawnConfig.helis;
             let tanksToSpawn = tankConfig.count;
             let jetsToSpawn = jetConfig.count;
-
+            let helisToSpawn = heliConfig.count;
 
             setTimeout(function ()
             {
@@ -1674,6 +1806,11 @@ function setupNextLevel(forceLevel = null)
                 for (let i = 0; i < jetsToSpawn; i++)
                 {
                     addEnemyJet(jetConfig.xSpaceBetween, jetConfig.spawnAfterDeath ?? null)
+                }
+
+                for (let i = 0; i < helisToSpawn; i++)
+                {
+                    addEnemyHeli(heliConfig.xSpaceBetween, heliConfig.spawnAfterDeath ?? null);
                 }
 
             }, spawnConfig.seconds)
@@ -1894,6 +2031,33 @@ function cleanUp(hardClean = false)
         enemies = [];
     }
 }
+
+function removeProjectile(projectile)
+{
+    if (projectile.flame)
+    {
+        projectile.flame.visible = false;
+        //projectile.flame.destroy();
+    }
+    if (projectile.label)
+    {
+        projectile.label.visible = false;
+        //projectile.label.destroy();
+    }
+
+
+
+   
+
+    projectile.visible = false;
+     //projectiles = projectiles.filter(function (p) { return p != projectile });
+
+    //projectile.destroy({children: true});
+
+
+    //projectiles.shift();
+}
+
 
 function runDebugStuff()
 {
