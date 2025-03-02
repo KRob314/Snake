@@ -10,16 +10,17 @@ let speed = 2;
 let backgrounds = [];
 let projectiles = []
 let enemies = [];
-let debugMode = true;
+let debugMode = false;
 let roadY = appHeight - 150;
 
+const PROJECTILE_TYPE = { BULLET: 'bullet', MISSILE: 'missile', BOMB: 'bomb', GLIDEBOMB: 'glideBomb' }
 let projectileConfigs = {
-    bullet: { type: 'bullet', enabled: true, width: 20, height: 10, xSpeed: 6, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 115, fireOffsetY: 45, damage: 10, splashDamage: 0, splashDamageRadius: 0, lastTimeFired: performance.now(), fireCooldown: 100, ammoStart: 200, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 },
+    bullet: { type: PROJECTILE_TYPE.BULLET, enabled: true, width: 20, height: 10, xSpeed: 6, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 115, fireOffsetY: 45, damage: 10, splashDamage: 0, splashDamageRadius: 0, lastTimeFired: performance.now(), fireCooldown: 100, ammoStart: 200, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 },
     missile: {
-        type: 'missile', enabled: true, width: 50, height: 15, xSpeed: 8, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 50, fireOffsetY: 45, damage: 30, splashDamage: 0, splashDamageRadius: 0, lastTimeFired: performance.now(), fireCooldown: 500, ammoStart: 25, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0, startSequences: [{ x: 0, y: 1.25, untilX: 0, untilY: 20 }, { x: 2, y: -.3, untilX: 150, untilY: -70 }]
+        type: PROJECTILE_TYPE.MISSILE, enabled: true, width: 50, height: 15, xSpeed: 8, ySpeed: 0, rotationSpeed: 0, fireOffsetX: 50, fireOffsetY: 45, damage: 30, splashDamage: 0, splashDamageRadius: 0, lastTimeFired: performance.now(), fireCooldown: 500, ammoStart: 25, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0, startSequences: [{ x: 0, y: 1.25, untilX: 0, untilY: 20 }, { x: 2, y: -.3, untilX: 150, untilY: -70 }]
     },
-    bomb: { type: 'bomb', enabled: true, width: 10, height: 15, xSpeed: 1.5, ySpeed: 6, rotationSpeed: 0, fireOffsetX: 80, fireOffsetY: 45, damage: 100, splashDamage: 20, splashDamageRadius: 500, lastTimeFired: performance.now(), fireCooldown: 500, ammoStart: 12, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 },
-    glideBomb: { type: 'glideBomb', enabled: true, width: 50, height: 50, xSpeed: 3.5, ySpeed: 3.5, rotationSpeed: -.003, fireOffsetX: 80, fireOffsetY: 45, damage: 40, splashDamage: 10, splashDamageRadius: 250, lastTimeFired: performance.now(), fireCooldown: 600, ammoStart: 5, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 }
+    bomb: { type: PROJECTILE_TYPE.BOMB, enabled: true, width: 10, height: 15, xSpeed: 1.5, ySpeed: 6, rotationSpeed: 0, fireOffsetX: 80, fireOffsetY: 45, damage: 100, splashDamage: 20, splashDamageRadius: 500, lastTimeFired: performance.now(), fireCooldown: 500, ammoStart: 12, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 },
+    glideBomb: { type: PROJECTILE_TYPE.GLIDEBOMB, enabled: true, width: 50, height: 50, xSpeed: 3.5, ySpeed: 3.5, rotationSpeed: -.003, fireOffsetX: 80, fireOffsetY: 45, damage: 40, splashDamage: 10, splashDamageRadius: 250, lastTimeFired: performance.now(), fireCooldown: 600, ammoStart: 5, fireOffsetXModifier: 0, fireOffsetYModifier: 0, XRotationModifier: 0, YRotationModifier: 0 }
 }
 
 
@@ -233,10 +234,15 @@ if (debugMode)
     app.stage.addChild(line745);
 }
 
-addEnemyHeli();
+//addEnemyHeli();
 //addEnemyHeli();
 //addEnemyJet();
 //addEnemyTank();
+
+skipIntro();
+
+const cnt = new PIXI.ParticleContainer();
+app.stage.addChild(cnt);
 
 function gameLoop()
 {
@@ -508,6 +514,16 @@ function drawProjectiles()
         //out of bounds
         if (projectile.y >= appHeight - (projectile.height) || projectile.x >= appWidth + 200)
         {
+
+            if (projectile.type == PROJECTILE_TYPE.BOMB)
+            {
+                showParticleDirtSplash(projectile.x, projectile.y, 25);
+            }
+            else if (projectile.type == PROJECTILE_TYPE.GLIDEBOMB)
+            {
+                showParticleDirtSplash(projectile.x, projectile.y, 10);
+            }
+
             removeProjectile(projectile);
 
 
@@ -1465,7 +1481,7 @@ function doesIntersectY(projectile, enemy, typeOfEnemy)
             if (projectileAndEnemyXDifference < enemy.width * .3)
             {
                 //front
-                if (projectile.y >= enemy.y1() && projectile.y <= (enemy.y2() -10 ))
+                if (projectile.y >= enemy.y1() && projectile.y <= (enemy.y2() - 10))
                 {
                     return true;
                 }
@@ -1518,8 +1534,8 @@ function isWithIn(pointToTest, pointMin, pointMax)
 
 function showParticlesSplash(x, y)
 {
-    const cnt = new PIXI.ParticleContainer();
-    app.stage.addChild(cnt);
+    //const cnt = new PIXI.ParticleContainer();
+    //app.stage.addChild(cnt);
 
     const emitter = new PIXI.particles.Emitter(cnt, {
         lifetime: { min: 0.1, max: 2 },
@@ -1556,8 +1572,8 @@ function showParticlesSplash(x, y)
 function showParticlesSM(x, y)
 {
 
-    const cnt = new PIXI.ParticleContainer();
-    app.stage.addChild(cnt);
+    //const cnt = new PIXI.ParticleContainer();
+    //app.stage.addChild(cnt);
 
     const emitter = new PIXI.particles.Emitter(cnt, {
         lifetime: { min: 0.1, max: 2 },
@@ -1602,8 +1618,8 @@ function showParticlesSM(x, y)
 function showParticlesLG(x, y)
 {
 
-    const cnt = new PIXI.ParticleContainer();
-    app.stage.addChild(cnt);
+    //const cnt = new PIXI.ParticleContainer();
+    //app.stage.addChild(cnt);
 
     const emitter = new PIXI.particles.Emitter(cnt, {
         lifetime: { min: 0.1, max: 2 },
@@ -1643,6 +1659,119 @@ function showParticlesLG(x, y)
         emitter.cleanup();
         emitter.destroy();
     }, 1500)
+}
+
+
+
+function showParticleDirtSplash(x, y, particleCount = 15)
+{
+    //const cnt = new PIXI.ParticleContainer();
+    //app.stage.addChild(cnt);
+
+    const emitter = new PIXI.particles.Emitter(cnt, {
+        lifetime: { min: 0.1, max: 2 },
+        emit: true,
+        frequency: 1,
+        spawnChance: 1,
+        particlesPerWave: particleCount,
+        emitterLifetime: 1.5,
+        maxParticles: particleCount,
+        pos: { x: x, y: y },
+        autoUpdate: true,
+        addAtBack: true,
+        behaviors: [
+            {
+                type: 'spawnPoint',
+                config: {}
+            },
+            {
+                type: 'spawnShape',
+                config: { type: 'rect', data: { x: 0, y: 0, w: 100, h: 10 } },
+            },
+            { type: 'moveSpeedStatic', config: { min: 500, max: 1000 } },
+            /*  { type: 'spawnBurst', config: { start: 0, spacing: 45, distance: 10, } },*/
+            { type: 'textureSingle', config: { texture: PIXI.Texture.WHITE } },
+            //{ type: 'spawnBurst', config: { start: 0, spacing: 45, distance: 30, } },
+            { type: 'colorStatic', config: { color: "#8B4513" }, },
+
+            { type: 'scale', config: { scale: { list: [{ value: .5, time: 0 }, { value: 1, time: 0.3 }, { value: .2, time: 1 }] } } },
+            { type: 'alpha', config: { alpha: { list: [{ value: 1, time: 0 }, { value: .8, time: 0.3 }, { value: .4, time: 0.5 }, { value: 0, time: 1 },], }, }, },
+            //{ type: "rotationStatic",config: { "min": -50, "max": 50,}}
+            {
+                type: "movePath",
+                config: {
+                    path: "cos(x/100) * 30.0 + 10.0 * random()",
+                    speed: {
+                       list: [{ value: 1, time: 0 }, { value: 400, time: 0.3 }, { value: 800, time: 1 }],
+                    },
+                    minMult: 0.1
+                },
+            },
+        ],
+
+    });
+
+
+    const emitter2 = new PIXI.particles.Emitter(cnt, {
+        lifetime: { min: 0.1, max: 2 },
+        emit: true,
+        frequency: 1,
+        spawnChance: 1,
+        particlesPerWave: particleCount,
+        emitterLifetime: 1.5,
+        maxParticles: particleCount,
+        pos: { x: x, y: y },
+        autoUpdate: true,
+        addAtBack: true,
+        behaviors: [
+            {
+                type: 'spawnPoint',
+                config: {}
+            },
+            {
+                type: 'spawnShape',
+                config: { type: 'rect', data: { x: 0, y: 0, w: 100, h: 10 } },
+            },
+            { type: 'moveSpeedStatic', config: { min: 500, max: 1000 } },
+            { type: 'textureSingle', config: { texture: PIXI.Texture.WHITE } },
+            //{ type: 'spawnBurst', config: { start: 0, spacing: 45, distance: 30, } },
+            { type: 'colorStatic', config: { color: "#8B4513" }, },
+            //{
+            //   type: 'color', config: {
+            //        color: {
+            //            isStepped: true,
+            //            list: [
+            //                { value: '#8B4513', time: 0 },
+            //                { value: '#000', time: 0.5 },
+            //                { value: '#9f8170', time: 1 }
+            //            ]
+            //        }
+            //    }
+            //},
+            { type: 'scale', config: { scale: { list: [{ value: .5, time: 0 }, { value: 1, time: 0.3 }, { value: .2, time: 1 }] } } },
+            { type: 'alpha', config: { alpha: { list: [{ value: 1, time: 0 }, { value: .8, time: 0.3 }, { value: .4, time: 0.5 }, { value: 0, time: 1 },], }, }, },
+            //{ type: "rotationStatic",config: { "min": -50, "max": 50,}}
+            {
+                type: "movePath",
+                config: {
+                    path: "cos(x/100) * 30.0 + 10.0 * random() ",
+                    speed: {
+                        list: [{ value: -1, time: 0 }, { value: -400, time: 0.3 }, { value: -800, time: 1 }],
+                    },
+                    minMult: 0.2
+                },
+            },
+        ],
+
+    });
+
+
+    setTimeout(function ()
+    {
+        emitter.destroy();
+        emitter2.destroy();
+    },3000)
+    
 }
 
 function addMissileParticles(projectile)
@@ -1787,6 +1916,8 @@ function setupNextLevel(forceLevel = null)
     let levelConfig = levelConfigs.find(function (x) { return x.level == level });
     if (levelConfig.spawnConfigs)
     {
+
+
         for (const spawnConfig of levelConfig.spawnConfigs)
         {
             let tankConfig = spawnConfig.tanks;
@@ -1795,6 +1926,7 @@ function setupNextLevel(forceLevel = null)
             let tanksToSpawn = tankConfig.count;
             let jetsToSpawn = jetConfig.count;
             let helisToSpawn = heliConfig.count;
+
 
             setTimeout(function ()
             {
@@ -1817,7 +1949,34 @@ function setupNextLevel(forceLevel = null)
         }
 
 
+        if (levelConfig.maxRandomEnemies > 0)
+        {
+            const randomSpawnTime = getRandomInt(100, 12000);
+            const spawnGround = getRandomBool();
+            const randomEnemiesToSpawn = getRandomInt(1, levelConfig.maxRandomEnemies);
 
+            if (spawnGround)
+            {
+                setTimeout(function ()
+                {
+                    for (let i = 1; i < randomEnemiesToSpawn; i++)
+                    {
+                        addEnemyTank(10);
+                    }
+                }, randomSpawnTime)
+            }
+            else
+            {
+                setTimeout(function ()
+                {
+                    for (let i = 1; i < randomEnemiesToSpawn; i++)
+                    {
+                        addEnemyJet(10);
+                    }
+                }, randomSpawnTime)
+            }
+
+        }
 
     }
 
@@ -2047,10 +2206,10 @@ function removeProjectile(projectile)
 
 
 
-   
+
 
     projectile.visible = false;
-     //projectiles = projectiles.filter(function (p) { return p != projectile });
+    //projectiles = projectiles.filter(function (p) { return p != projectile });
 
     //projectile.destroy({children: true});
 
@@ -2068,6 +2227,9 @@ function runDebugStuff()
     console.log('projectiles')
     console.log(projectiles);
     console.log(playerStats);
+
+    console.log('particle container')
+    console.log(cnt);
 }
 
 function updatePlayerStats(projectileType, hitTarget)
@@ -2076,16 +2238,16 @@ function updatePlayerStats(projectileType, hitTarget)
 
     switch (projectileType)
     {
-        case 'bullet':
+        case PROJECTILE_TYPE.BULLET:
             statType = playerStats.shots.bullets;
             break;
-        case 'missile':
+        case PROJECTILE_TYPE.MISSILE:
             statType = playerStats.shots.missles;
             break;
-        case 'bomb':
+        case PROJECTILE_TYPE.BOMB:
             statType = playerStats.shots.bombs;
             break;
-        case 'glideBomb':
+        case PROJECTILE_TYPE.GLIDEBOMB:
             statType = playerStats.shots.glideBombs;
             break;
     }
